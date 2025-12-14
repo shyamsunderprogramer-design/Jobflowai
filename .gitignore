@@ -11,6 +11,7 @@ __pycache__/
 .venv/
 env/
 venv/
+JFAI_venv/
 
 # ---- Node / React ----
 node_modules/
