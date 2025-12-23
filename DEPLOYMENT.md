@@ -1,226 +1,77 @@
 # JobFlowAI Deployment Guide
 
-This guide provides step-by-step instructions to run JobFlowAI locally and deploy it to a production environment.
+## 🚀 Recommended: Cloud Deployment (Vercel + Render)
 
-## Prerequisites
+This project is configured for a seamless cloud deployment using **Render** (Backend & Database) and **Vercel** (Frontend).
 
--   **Git**: For version control.
--   **Docker** & **Docker Compose**: For containerized deployment.
--   **Node.js (v14+)**: For local frontend development (optional if using Docker).
--   **Python (v3.8+)**: For local backend development (optional if using Docker).
+### Phase 1: Backend Deployment (Render)
 
----
+1.  **Sign up/Login** to [Render](https://render.com).
+2.  **Create a New Blueprint Instance**:
+    *   Go to Dashboard -> "New" -> "Blueprint".
+    *   Connect your GitHub repository.
+    *   Render will automatically detect `render.yaml` in the root.
+3.  **Apply the Blueprint**:
+    *   Render will prompt to create a **Database** (`jobflowai-db`) and a **Web Service** (`jobflowai-backend`).
+    *   Click "Apply".
+4.  **Wait for Build**:
+    *   Render will build the Docker image and start the service.
+    *   Once "Live", copy the **Backend URL** (e.g., `https://jobflowai-backend.onrender.com`).
 
-## 1. Local Development
-
-Running the project manually or with mixed Docker/Local setup is best for development.
-
-### Backend (Docker)
-The easiest way to run the backend and database is using Docker Compose.
-
-1.  **Environment Setup**:
-    Create a `.env` file in `backend/` (or use the one in root if configured).
-    ```bash
-    # backend/.env
-    ENV=dev
-    DATABASE_URL=postgresql://user:pass@db:5432/jobflowai
-    OPENAI_API_KEY=your_openai_key
-    SECRET_KEY=dev_secret
-    ```
-    *Note: The `docker-compose.yml` provided in the repo already sets some defaults.*
-
-2.  **Start Backend**:
-    From the root directory:
-    ```bash
-    docker-compose up --build
-    ```
-    -   Backend API: `http://localhost:8000`
-    -   Docs: `http://localhost:8000/docs`
-
-### Frontend (Local)
-1.  Navigate to `frontend/`:
-    ```bash
-    cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  **Configure API URL**:
-    Create `.env` in `frontend/`:
-    ```ini
-    REACT_APP_API_BASE_URL=http://localhost:8000/api/v1
-    ```
-    *(The app defaults to http://127.0.0.1:8000 if not set, which usually works)*
-
-4.  Start the dev server:
-    ```bash
-    npm start
-    ```
-    -   App: `http://localhost:3000`
+**Troubleshooting Env Vars:**
+If automatic configuration misses variables, manually add these in the Render Dashboard (Environment):
+*   `SECRET_KEY`: (Generate a random string)
+*   `OPENAI_API_KEY`: (Your OpenAI Key)
+*   `ALLOWED_ORIGINS`: `https://your-frontend.vercel.app` (You will update this after Phase 2)
+*   `PORT`: `10000` (Default)
 
 ---
 
-## 2. Production Deployment (End-to-End with Docker)
+### Phase 2: Frontend Deployment (Vercel)
 
-This method deploys both Backend and Frontend on a single server (VPS) using Docker Compose and Nginx.
-
-### Step 1: Create Frontend Dockerfile
-
-Create a file named `Dockerfile` in the `frontend/` directory to build the React app and serve it with Nginx.
-
-**`frontend/Dockerfile`**
-```dockerfile
-# Stage 1: Build
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Stage 2: Serve
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-# React Router support (fallback to index.html)
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html index.htm; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Step 2: Create Production Docker Compose
-
-Create a new file `docker-compose.prod.yml` in the root directory. This configures the backend, database, and frontend.
-
-**`docker-compose.prod.yml`**
-```yaml
-services:
-  # Backend API
-  backend:
-    build: .
-    restart: always
-    environment:
-      - ENV=production
-      - DATABASE_URL=postgresql://user:pass@db:5432/jobflowai
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SECRET_KEY=${SECRET_KEY}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      # Update allowed origins for production
-      - ALLOWED_ORIGINS=http://your-domain.com,http://localhost
-    depends_on:
-      db:
-        condition: service_healthy
-
-  # Database
-  db:
-    image: postgres:13
-    restart: always
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=jobflowai
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d jobflowai"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Frontend (Nginx)
-  frontend:
-    build: ./frontend
-    restart: always
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
-```
-
-### Step 3: Deploy to VPS
-
-1.  **Provision a Server**: Get a VPS (Ubuntu recommended) from a provider like DigitalOcean, AWS, or Linode.
-2.  **Install Docker**: Follow official instructions to install Docker Engine and Docker Compose.
-3.  **Clone Repository**:
-    ```bash
-    git clone https://github.com/your-username/Jobflowai.git
-    cd Jobflowai
-    ```
-4.  **Set Environment Variables**:
-    Create a `.env` file in the root directory with production secrets:
-    ```bash
-    OPENAI_API_KEY=sk-...
-    SECRET_KEY=extremely_secure_random_string
-    STRIPE_SECRET_KEY=sk_test_...
-    ```
-    *Note: For the frontend to access the backend, you might need to configure Nginx to proxy `/api` calls to the backend container, or expose the backend on a different port/domain.*
-
-    **Enhanced Production Nginx (Optional but Recommended)**:
-    If deploying fully, you usually want Nginx to handle both frontend static files AND proxy API requests to avoid CORS and port issues. You can update the `frontend` service to act as the main gateway:
-
-    Update `frontend/Dockerfile` Nginx config section to:
-    ```nginx
-    server {
-        listen 80;
-        
-        location / {
-            root /usr/share/nginx/html;
-            try_files $uri $uri/ /index.html;
-        }
-
-        location /api/ {
-            proxy_pass http://backend:8000;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-        }
-    }
-    ```
-
-5.  **Run Deployment**:
-    ```bash
-    docker-compose -f docker-compose.prod.yml up -d --build
-    ```
-
-6.  **Verify**:
-    -   Visit `http://your-server-ip`.
-    -   The frontend should load and be able to communicate with the backend via `/api/`.
-
----
-
-## 3. Alternative: Cloud Deployment (Vercel + Render)
-
-### Frontend (Vercel)
-1.  **Push code to GitHub**.
-2.  **Import project in Vercel**.
+1.  **Sign up/Login** to [Vercel](https://vercel.com).
+2.  **Add New Project**:
+    *   "Import Project" -> Select your GitHub repository.
 3.  **Configure Project**:
-    -   **Root Directory**: `frontend`
-    -   **Framework Preset**: Create React App (should auto-detect)
-    -   **Environment Variables**:
-        -   `REACT_APP_API_BASE_URL` = `https://your-backend-on-render.com/api/v1`
-4.  **Deploy**. Vercel will use the `vercel.json` included in the repo for correct routing.
+    *   **Root Directory**: Click "Edit" and select `frontend`. **(Crucial Step)**.
+    *   **Framework Preset**: Create React App (Auto-detected).
+    *   **Build Command**: `npm run build`.
+4.  **Environment Variables**:
+    Add the following variables so the frontend can find the backend:
+    *   `REACT_APP_API_BASE_URL`: Paste your Render Backend URL (e.g., `https://jobflowai-backend.onrender.com`).
+    *   `REACT_APP_API_BASE`: (Same value as above, for safety).
+5.  **Deploy**:
+    *   Click "Deploy".
+    *   Vercel will build and assign a domain (e.g., `jobflowai.vercel.app`).
 
-### Backend (Render / Railway)
-1.  **Connect GitHub repo** to Render/Railway.
-2.  **Create New Web Service**:
-    -   **Root Directory**: `.` (leave empty or set to root)
-    -   **Runtime/Environment**: Docker
-3.  **Configuration**:
-    -   Render will automatically detect the `Dockerfile` in the root.
-    -   **Environment Variables** (Add these in the dashboard):
-        -   `DATABASE_URL`: Connection string to your PostgreSQL database (Render supports managed Postgres).
-        -   `OPENAI_API_KEY`: Your OpenAI key.
-        -   `SECRET_KEY`: A random secret string.
-        -   `STRIPE_SECRET_KEY`: Your Stripe key (if using payments).
-        -   `ALLOWED_ORIGINS`: `https://your-frontend.vercel.app` (to allow CORS).
-4.  **Deploy**. The app will listen on the port defined by the `PORT` env var (default 10000 on Render).
+---
 
+### Phase 3: Final Connection
+
+1.  Go back to **Render Dashboard** -> `jobflowai-backend` service -> **Environment**.
+2.  Update `ALLOWED_ORIGINS`:
+    *   Set it to your new Vercel domain (e.g., `https://jobflowai.vercel.app`).
+    *   This ensures CORS requests are allowed.
+3.  **Done!** Your app is now live.
+
+---
+
+## 💻 Alternative: Local Deployment (Docker)
+
+To run the entire stack locally:
+
+1.  **Configure .env**:
+    *   Ensure `backend/.env` exists or `docker-compose.yml` env vars are sufficient.
+2.  **Run Docker Compose**:
+    ```bash
+    docker-compose -f docker-compose.prod.yml up --build
+    ```
+3.  **Access**:
+    *   Frontend: `http://localhost:80`
+    *   Backend: `http://localhost:8080` (internal access)
+
+## ⚠️ Important Configuration Notes
+
+*   **Port**: The backend listens on port `8080` by default but respects the `PORT` env var (required for Render).
+*   **Database**: The `render.yaml` blueprint creates a managed PostgreSQL instance automatically.
+*   **CORS**: Ensure `ALLOWED_ORIGINS` matches the frontend domain exactly (no trailing slash).

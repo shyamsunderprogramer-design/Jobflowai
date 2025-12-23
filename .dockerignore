@@ -1,0 +1,13 @@
+**/node_modules
+**/build
+**/.git
+**/.env
+**/*.log
+**/__pycache__
+**/.venv
+**/venv
+**/env
+backend.zip
+frontend/node_modules
+frontend/build
+backend/__pycache__
