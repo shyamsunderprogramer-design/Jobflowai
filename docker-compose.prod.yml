@@ -1,0 +1,56 @@
+services:
+  # Backend API
+  backend:
+    build: .
+    restart: always
+    env_file:
+      - env
+    environment:
+      - ENV=production
+      - DATABASE_URL=postgresql://user:pass@db:5432/jobflowai
+      # - OPENAI_API_KEY=${OPENAI_API_KEY} # Loaded from env file
+      # - SECRET_KEY=${SECRET_KEY}         # Loaded from env file
+      # - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY} # Loaded from env file
+      # Update allowed origins for production
+      - ALLOWED_ORIGINS=http://localhost
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  # Database
+  db:
+    image: postgres:13
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=jobflowai
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d jobflowai" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  # Frontend (Nginx)
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  app_network:
