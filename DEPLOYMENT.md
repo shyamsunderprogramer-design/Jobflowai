@@ -199,14 +199,28 @@ volumes:
 
 ## 3. Alternative: Cloud Deployment (Vercel + Render)
 
-**Frontend (Vercel)**:
-1.  Push code to GitHub.
-2.  Import project in Vercel.
-3.  Set Root Directory to `frontend`.
-4.  Add Environment Variable: `REACT_APP_API_BASE_URL` = `https://your-backend-url.com/api/v1`.
+### Frontend (Vercel)
+1.  **Push code to GitHub**.
+2.  **Import project in Vercel**.
+3.  **Configure Project**:
+    -   **Root Directory**: `frontend`
+    -   **Framework Preset**: Create React App (should auto-detect)
+    -   **Environment Variables**:
+        -   `REACT_APP_API_BASE_URL` = `https://your-backend-on-render.com/api/v1`
+4.  **Deploy**. Vercel will use the `vercel.json` included in the repo for correct routing.
 
-**Backend (Render/Railway)**:
-1.  Connect GitHub repo.
-2.  Select `Dockerfile` (root path).
-3.  Set Environment Variables (`DATABASE_URL`, `OPENAI_API_KEY`).
-4.  The service will provision a PostgreSQL DB (or you add one) and run the backend.
+### Backend (Render / Railway)
+1.  **Connect GitHub repo** to Render/Railway.
+2.  **Create New Web Service**:
+    -   **Root Directory**: `.` (leave empty or set to root)
+    -   **Runtime/Environment**: Docker
+3.  **Configuration**:
+    -   Render will automatically detect the `Dockerfile` in the root.
+    -   **Environment Variables** (Add these in the dashboard):
+        -   `DATABASE_URL`: Connection string to your PostgreSQL database (Render supports managed Postgres).
+        -   `OPENAI_API_KEY`: Your OpenAI key.
+        -   `SECRET_KEY`: A random secret string.
+        -   `STRIPE_SECRET_KEY`: Your Stripe key (if using payments).
+        -   `ALLOWED_ORIGINS`: `https://your-frontend.vercel.app` (to allow CORS).
+4.  **Deploy**. The app will listen on the port defined by the `PORT` env var (default 10000 on Render).
+
