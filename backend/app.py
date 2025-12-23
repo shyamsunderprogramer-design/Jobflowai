@@ -3,6 +3,10 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.database import engine, Base
+# Create tables if they don't exist
+Base.metadata.create_all(bind=engine)
+
 # Import Routers
 from backend.routes.auth import router as auth_router
 from backend.routes.auth_reset import router as auth_reset_router

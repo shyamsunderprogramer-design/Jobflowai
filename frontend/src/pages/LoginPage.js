@@ -26,13 +26,13 @@ const LoginPage = () => {
       const payload = { email: (email || "").trim(), password };
       const { data } = await api.post("/api/v1/auth/login", payload);
 
-      const accessToken = data?.access_token || data?.token || "";
+      const token = data?.access_token || data?.token || "";
       const rawType = (data?.token_type || "Bearer").trim();
       const tokenType = rawType.toLowerCase() === "bearer" ? "Bearer" : rawType;
 
-      if (!accessToken) throw new Error("No access token returned by server.");
-
-      setAuthToken(accessToken, tokenType);
+      if (token) {
+        setAuthToken(token, tokenType);
+      }
 
       // sanity check
       await api.get("/api/v1/auth/me");
