@@ -1,19 +1,16 @@
 services:
   # Backend API
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: always
     env_file:
       - .env
     environment:
       - ENV=production
       - DATABASE_URL=postgresql://user:pass@db:5432/jobflowai
-      # - OPENAI_API_KEY=${OPENAI_API_KEY} # Loaded from env file
-      # - SECRET_KEY=${SECRET_KEY}         # Loaded from env file
-      # - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY} # Loaded from env file
-      # Update allowed origins for production
       - PORT=8000
-      - ALLOWED_ORIGINS=http://localhost
     depends_on:
       db:
         condition: service_healthy
@@ -22,7 +19,7 @@ services:
 
   # Database
   db:
-    image: postgres:13
+    image: postgres:15-alpine
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
