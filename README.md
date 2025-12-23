@@ -2,6 +2,15 @@
 
 JobFlowAI is an AI-powered resume comparison, enhancement, and interview assistant. It simplifies the job application process by providing tools to analyze and improve your resume, compare it against job descriptions, and prepare for interviews.
 
+## 🚀 One-Click Deployment
+
+| Frontend (Vercel) | Backend (Render) |
+| :---: | :---: |
+| [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshyamsunderprogramer-design%2FJobflowai&project-name=jobflowai-frontend&framework=create-react-app&root-directory=frontend&env=REACT_APP_API_BASE_URL) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/shyamsunderprogramer-design/Jobflowai) |
+
+> **Note:** For Vercel, set `REACT_APP_API_BASE_URL` to your Render backend URL after deploying the backend.
+> **Note:** For Render, you will be prompted to input `OPENAI_API_KEY`.
+
 ## Features
 
 -   **Resume & Cover Letter Generation**: Create professional resumes and cover letters.
