@@ -4,7 +4,7 @@ services:
     build: .
     restart: always
     env_file:
-      - env
+      - .env
     environment:
       - ENV=production
       - DATABASE_URL=postgresql://user:pass@db:5432/jobflowai
